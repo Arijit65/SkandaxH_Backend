@@ -1,0 +1,71 @@
+In a MERN stack job portal project, the backend (Node.js + Express.js) 
+will provide APIs for the frontend (React.js) to interact with the database (MongoDB). 
+Below are the key API endpoints categorized by features:
+
+1. Authentication & Authorization
+POST /api/auth/register → Register a new user (Job Seeker/Recruiter)
+POST /api/auth/login → Login and get JWT token
+POST /api/auth/logout → Logout user
+GET /api/auth/user → Get logged-in user details (Protected)
+POST /api/auth/forgot-password → Send password reset email
+POST /api/auth/reset-password → Reset password
+
+2. User Management
+GET /api/users/:id → Get user profile (Job Seeker/Recruiter)
+PUT /api/users/:id → Update user profile
+DELETE /api/users/:id → Delete user account
+GET /api/users → Get all users (Admin only)
+
+3. Job Management (Recruiters)
+POST /api/jobs → Create a new job posting
+GET /api/jobs → Get all job listings
+GET /api/jobs/:id → Get details of a single job
+PUT /api/jobs/:id → Update job posting (Recruiter only)
+DELETE /api/jobs/:id → Delete job posting (Recruiter only)
+GET /api/jobs/recruiter/:id → Get jobs posted by a specific recruiter
+
+4. Job Applications (Job Seekers)
+POST /api/applications → Apply for a job
+GET /api/applications → Get all applications (Admin/Recruiter only)
+GET /api/applications/:id → Get a specific job application
+GET /api/applications/job/:jobId → Get applications for a specific job (Recruiter only)
+GET /api/applications/user/:userId → Get applications submitted by a specific user
+PUT /api/applications/:id/status → Update application status (Shortlisted, Rejected, Hired)
+
+5. Resume & Profile Management
+POST /api/resume/upload → Upload resume
+GET /api/resume/:userId → Get resume of a specific user
+DELETE /api/resume/:userId → Delete resume
+
+6. AI-Based Features (Optional - If AI Interview is Included)
+POST /api/ai-interview/start → Start AI interview for a candidate
+GET /api/ai-interview/result/:id → Get AI interview results
+
+7. Notifications & Messaging
+POST /api/notifications → Send a notification
+GET /api/notifications/:userId → Get notifications for a user
+POST /api/messages → Send a message
+GET /api/messages/:conversationId → Get chat messages
+
+8. Search & Filters
+GET /api/jobs/search?query=developer&location=Noida → Search jobs by keyword & location
+GET /api/jobs/filter?category=IT&experience=2 → Filter jobs by category, experience, etc.
+
+9. Admin Dashboard
+GET /api/admin/users → Get all users
+GET /api/admin/jobs → Get all jobs
+GET /api/admin/applications → Get all job applications
+
+
+
+
+npm install express pg pg-hstore sequelize dotenv cors jsonwebtoken bcryptjs multer
+
+pg → PostgreSQL client for Node.js
+pg-hstore → Helps store objects as JSON in PostgreSQL
+sequelize → ORM for interacting with PostgreSQL
+dotenv → Manages environment variables
+cors → Enables cross-origin requests
+jsonwebtoken → Handles authentication
+bcryptjs → Hashes passwords
+multer → Handles file uploads (for resumes)

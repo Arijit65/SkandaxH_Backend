@@ -1,0 +1,37 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+
+# misc
+.env
+
+
+# Archive files
+*.zip
+*.rar
+*.tar.gz
+resume-api.zip
+.pdf
+
+BACKUP/
+
+*.backup
+
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Development and deployment
+backend_deploy/
+node_modules/
+.env
+.env.local
+.env.*.local
+
+# Logs and databases
+*.log
+*.sqlite
+*.db
