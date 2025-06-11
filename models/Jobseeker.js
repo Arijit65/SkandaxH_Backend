@@ -21,9 +21,14 @@ module.exports = (sequelize, DataTypes) => {
     location: DataTypes.STRING,
     designation: DataTypes.STRING,
     resume: DataTypes.STRING,
+    profileImage: DataTypes.STRING,
     githubLink: {
       type: DataTypes.STRING,
       validate: { isUrl: true },
+    },
+    savedJobs: {
+      type: DataTypes.ARRAY(DataTypes.UUID),
+      defaultValue: [],
     },
   });
 

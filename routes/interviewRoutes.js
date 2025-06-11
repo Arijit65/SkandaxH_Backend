@@ -9,6 +9,7 @@ router.post(
 );
 
 router.get('/get-interviews/:email', interviewApiController.getInterviewsByEmail);
-
+router.get('/get-latest-interview/:email', interviewApiController.getLatestInterviewByEmail);
+router.get('/get-interviews-by-job/:jobRole', interviewApiController.getInterviewsByJobRole);
 
 module.exports = router;

@@ -2,7 +2,7 @@ const express = require("express");
 const router = express.Router();
 const  Job  = require("../models/Job"); // Import Job model
 const { authenticateUser } = require("../middleware/authMiddleware");
-const { createJob, getRecommendedJobs, getAllJobs, getJobById, getJobsByRecruiterId, deleteJob, updateJob } = require("../controllers/jobController");
+const { createJob, getRecommendedJobs, getAllJobs, getJobById, getJobsByRecruiterId, deleteJob, updateJob, saveJob, getSavedJobs } = require("../controllers/jobController");
 //const { authenticateUser, authorizeAdmin } = require("../middleware/authMiddleware");
 
 // Create a new job (Admin Only)
@@ -76,5 +76,11 @@ router.delete("/:id",authenticateUser,deleteJob );
 //     res.status(500).json({ error: "Failed to delete job", details: error.message });
 //   }
 // });
+
+// Save a job to jobseeker's saved jobs list
+router.post("/save-job", authenticateUser, saveJob);
+
+// Get all saved jobs for a jobseeker
+router.get("/get-saved-jobs", authenticateUser, getSavedJobs);
 
 module.exports = router;

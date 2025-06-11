@@ -83,22 +83,41 @@ exports.createMCQAssessment = async (req, res) => {
       to: email,
       subject: `MCQ Assessment for ${position_applied} at ${company_applied}`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <h2>MCQ Assessment Invitation</h2>
-          <p>Hello ${full_name},</p>
-          <p>You have been invited to take an MCQ assessment for the ${position_applied} position at ${company_applied}.</p>
-          <p>The assessment consists of ${total_questions} questions covering job-specific knowledge, soft skills, and aptitude.</p>
-          <p>Please click the button below to start your assessment:</p>
-          <div style="text-align: center; margin: 30px 0;">
-            <a href="${assessmentUrl}" style="background-color: #4CAF50; color: white; padding: 12px 20px; text-decoration: none; border-radius: 4px; font-weight: bold;">
-              Start Assessment
-            </a>
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; background: linear-gradient(to bottom, #EEF2FF, #ffffff); border-radius: 16px; padding: 30px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <h1 style="font-size: 28px; font-weight: bold; background: linear-gradient(to right, #3B82F6, #8B5CF6); -webkit-background-clip: text; -webkit-text-fill-color: transparent; margin-bottom: 10px;">MCQ Assessment Invitation</h1>
+            <p style="color: #6B7280; font-size: 16px;">Comprehensive skill-based evaluation</p>
           </div>
-          <p>Or copy and paste this link into your browser:</p>
-          <p>${assessmentUrl}</p>
-          <p>This assessment link will be valid for 20 mins.</p>
-          <p>Good luck!</p>
-          <p>Best regards,<br>The ${company_applied} Recruitment Team</p>
+          
+          <div style="background: white; border-radius: 12px; padding: 25px; margin-bottom: 25px; box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);">
+            <p style="font-size: 16px; color: #374151; margin-bottom: 15px;">Hello <span style="font-weight: bold;">${full_name}</span>,</p>
+            <p style="font-size: 16px; color: #374151; margin-bottom: 20px;">You have been invited to take an MCQ assessment for the <b style="color: #4F46E5;">${position_applied}</b> position at <b style="color: #4F46E5;">${company_applied}</b>.</p>
+            
+            <div style="background: rgba(79, 70, 229, 0.1); border-left: 4px solid #4F46E5; padding: 15px; border-radius: 4px; margin-bottom: 20px;">
+              <p style="font-size: 16px; color: #4F46E5; margin: 0;">Assessment Details:</p>
+              <ul style="color: #4B5563; padding-left: 20px; margin-top: 10px; margin-bottom: 0;">
+                <li style="margin-bottom: 5px;">Total questions: <b>${total_questions}</b></li>
+                <li style="margin-bottom: 5px;">Covers: Job-specific knowledge, soft skills, and aptitude</li>
+                <li style="margin-bottom: 0;">Time limit: 20 minutes</li>
+              </ul>
+            </div>
+            
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${assessmentUrl}" style="display: inline-block; background: linear-gradient(to right, #3B82F6, #8B5CF6); color: white; padding: 14px 28px; text-decoration: none; border-radius: 9999px; font-weight: 500; font-size: 16px; transition: all 0.3s; box-shadow: 0 4px 6px rgba(59, 130, 246, 0.25);">Start Assessment</a>
+            </div>
+            
+            <p style="font-size: 14px; color: #6B7280; margin-top: 25px;">If the button doesn't work, copy and paste this link into your browser:</p>
+            <p style="font-size: 14px; color: #4F46E5; word-break: break-all; margin-bottom: 20px;">${assessmentUrl}</p>
+          </div>
+          
+          <div style="background: linear-gradient(to right, #4F46E5, #8B5CF6); border-radius: 12px; padding: 20px; color: white; text-align: center; margin-bottom: 20px;">
+            <p style="font-size: 16px; margin-bottom: 0;">Good luck with your assessment!</p>
+          </div>
+          
+          <div style="text-align: center; color: #6B7280; font-size: 14px;">
+            <p>Best regards,<br>The ${company_applied} Recruitment Team</p>
+            <p>© ${new Date().getFullYear()} AI Interview System. All rights reserved.</p>
+          </div>
         </div>
       `
     };
@@ -396,6 +415,11 @@ exports.getResults = async (req, res) => {
   }
 };
 
+/**
+ * Get all MCQ assessments by email
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ */
 exports.getAssessmentsByEmail = async (req, res) => {
   try {
     const { email } = req.params;
@@ -404,7 +428,8 @@ exports.getAssessmentsByEmail = async (req, res) => {
     }
 
     const assessments = await MCQAssessment.findAll({
-      where: { candidate_email: email }
+      where: { candidate_email: email },
+      order: [['created_at', 'DESC']]
     });
 
     return res.status(200).json({
@@ -421,6 +446,11 @@ exports.getAssessmentsByEmail = async (req, res) => {
   }
 };
 
+/**
+ * Get the latest MCQ assessment by email
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ */
 exports.getLatestAssessmentByEmail = async (req, res) => {
   try {
     const { email } = req.params;
@@ -430,11 +460,11 @@ exports.getLatestAssessmentByEmail = async (req, res) => {
 
     const assessment = await MCQAssessment.findOne({
       where: { candidate_email: email },
-      order: [['updated_at', 'DESC']] // or 'updated_at' if you prefer
+      order: [['created_at', 'DESC']]
     });
 
     if (!assessment) {
-      return res.status(404).json({ success: false, message: 'No assessment found' });
+      return res.status(404).json({ success: false, message: 'No assessment found for this email' });
     }
 
     return res.status(200).json({
@@ -443,6 +473,37 @@ exports.getLatestAssessmentByEmail = async (req, res) => {
     });
   } catch (error) {
     console.error('Error fetching latest assessment by email:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
+
+/**
+ * Get MCQ assessments by position applied (job title)
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ */
+exports.getAssessmentsByPosition = async (req, res) => {
+  try {
+    const { position } = req.params;
+    if (!position) {
+      return res.status(400).json({ success: false, message: 'Position is required' });
+    }
+
+    const assessments = await MCQAssessment.findAll({
+      where: { position_applied: position },
+      order: [['created_at', 'DESC']]
+    });
+
+    return res.status(200).json({
+      success: true,
+      data: assessments
+    });
+  } catch (error) {
+    console.error('Error fetching assessments by position:', error);
     return res.status(500).json({
       success: false,
       message: 'Internal server error',

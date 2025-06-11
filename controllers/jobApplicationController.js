@@ -374,6 +374,8 @@ exports.getApplicationsByUser = async (req, res) => {
   }
 };
 
+
+
 exports.getApplicationsByRecruiter = async (req, res) => {
   try {
     const recruiterId = req.user.id;
@@ -383,61 +385,49 @@ exports.getApplicationsByRecruiter = async (req, res) => {
     const applications = await JobApplication.findAll({ 
       where: { jobId: jobIds } 
     });
-    //const applications = await JobApplication.findAll();
 
-    // const applications = await JobApplication.findAll({ where: { 
-    //   jobId: jobIds,
-    // }});
-    //if (!applications) return res.status(404).json({ message: 'No applications found' });
-
-  //  const jobIds = applications.map(app => app.jobId);
-    //const jobs = await Job.findAll({ where: { id: jobIds } });
-    const applicationsData =await Promise.all(applications.map(async (app) => {
+    // Group applications by jobId and include jobTitle
+    const groupedApplications = {};
+    await Promise.all(applications.map(async (app) => {
       let id = app.userId;
       const user = await User.findByPk(id);
-      console.log("user detaile are,....................",user);
-      
       const job = jobs.find(job => job.id === app.jobId);
-      return {
-        // ...app.toJSON(),
-        // jobTitle: job ? job.title : null,
-        // companyName: job ? job.company : null,
-        // location: job ? job.location : null,
-        // status: app.status,
-        // dateApplied: app.createdAt,
-        // userName: user ? user.name : null,
-        // userEmail: user ? user.email : null,
-        // userPhone: user ? user.phone : null,
-        // userResume: app.resume,
-        // userSkills: user ? user.skills : null,
-        // userExperience: user ? user.experience : null,
-        // userEducation: user ? user.education : null,
-        // userLocation: user ? user.location : null,
-    id: app.id,
-    jobId: app.jobId,
-    jobTitle: job ? job.title : null,
-    status: app.status,
-    progressDetails: app.progressDetails,
-    dateApplied: app.createdAt,
-    applicant: {
-      name: user ? user.name : null,
-      email: user ? user.email : null,
-      phone: user ? user.phone : null,
-      resume: app.resume,
-      skills: user ? user.skills : [],
-      education: user ? user.education : null,
-      experience: user ? user.experience : null,
-      location: user ? user.location : null
-    }
-        
+
+      const appData = {
+        id: app.id,
+        jobId: app.jobId,
+        jobTitle: job ? job.title : null,
+        status: app.status,
+        progressDetails: app.progressDetails,
+        dateApplied: app.createdAt,
+        applicant: {
+          name: user ? user.name : null,
+          email: user ? user.email : null,
+          phone: user ? user.phone : null,
+          resume: app.resume,
+          skills: user ? user.skills : [],
+          education: user ? user.education : null,
+          experience: user ? user.experience : null,
+          location: user ? user.location : null
+        }
       };
+
+      if (!groupedApplications[app.jobId]) {
+        groupedApplications[app.jobId] = {
+          jobId: app.jobId,
+          jobTitle: job ? job.title : null,
+          applications: []
+        };
+      }
+      groupedApplications[app.jobId].applications.push(appData);
     }));
 
-    res.json(applicationsData);
+    res.json(Object.values(groupedApplications));
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 }
+
 
 
 exports.updateApplicationStatus = async (req, res) => {

@@ -13,6 +13,7 @@ const aiRoutes = require("./routes/aiRoutes");
 const resumeRoutes = require("./routes/resumeRoutes");
 const mcqAssesmentRoute = require("./routes/mcqAssesmentRoute");
 const interviewRoutes = require('./routes/interviewRoutes');
+const formRoutes = require('./routes/formRoutes'); // Import form routes
 //const upload = require("./middleware/uploadMiddleware")
 
 const app = express();
@@ -59,6 +60,9 @@ app.use('/api/interview', interviewRoutes);
 
 // AI Routes
 app.use("/api/ai", aiRoutes);
+
+// Form Routes
+app.use("/api/forms", formRoutes);
 
 const PORT = process.env.PORT || 5000;
 

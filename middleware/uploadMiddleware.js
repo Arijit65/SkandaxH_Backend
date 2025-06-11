@@ -5,15 +5,30 @@ const path = require('path');
 // This will store the file in memory as a Buffer, which we can then upload to Cloudinary
 const storage = multer.memoryStorage();
 
-// File filter to only allow PDF and DOCX files
+// File filter based on file type
 const fileFilter = (req, file, cb) => {
-  const allowedFileTypes = ['.pdf', '.docx'];
+  const resumeTypes = ['.pdf', '.docx'];
+  const imageTypes = ['.jpg', '.jpeg', '.png', '.gif', '.webp'];
   const ext = path.extname(file.originalname).toLowerCase();
   
-  if (allowedFileTypes.includes(ext)) {
-    cb(null, true);
+  // Check the fieldname to determine which filter to apply
+  if (file.fieldname === 'resume') {
+    // For resume uploads
+    if (resumeTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only PDF and DOCX files are allowed for resumes!'), false);
+    }
+  } else if (file.fieldname === 'profileImage') {
+    // For profile image uploads
+    if (imageTypes.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPG, JPEG, PNG, GIF, and WEBP files are allowed for profile images!'), false);
+    }
   } else {
-    cb(new Error('Only PDF and DOCX files are allowed!'), false);
+    // Accept any file for other field names (like testFile)
+    cb(null, true);
   }
 };
 

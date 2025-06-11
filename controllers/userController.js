@@ -132,7 +132,7 @@ exports.loginUser = async (req, res) => {
  */
 exports.updateUser = async (req, res) => {
   try {
-    let {name,email,password,skills,phone,location,designation,certificates,education,experienceYears,jobDetails,githubLink,resumePath,resumeUrl} = req.body;
+    let {name,email,password,skills,phone,location,designation,certificates,education,experienceYears,jobDetails,githubLink,resumePath,resumeUrl,profileImageUrl} = req.body;
     const userId = req.user.id; // Get the logged-in user's ID from the JWT token
     
     console.log('Update request received with data:', {
@@ -142,11 +142,12 @@ exports.updateUser = async (req, res) => {
       jobDetails: jobDetails ? 'provided' : 'not provided',
       resumePath: resumePath ? 'provided' : 'not provided',
       resumeUrl: resumeUrl ? 'provided' : 'not provided',
-      file: req.file ? `${req.file.originalname} (${req.file.mimetype})` : 'not provided'
+      profileImageUrl: profileImageUrl ? 'provided' : 'not provided',
+      files: req.files ? `Resume: ${req.files.resume?.[0]?.originalname || 'not provided'}, ProfileImage: ${req.files.profileImage?.[0]?.originalname || 'not provided'}` : 'no files'
     });
     
     // Validate input - removed strict validation to allow partial updates
-    if (!name && !email && !password && !skills && !location && !designation && !certificates && !education && !experienceYears && !jobDetails && !githubLink && !req.file && !resumePath && !resumeUrl) {
+    if (!name && !email && !password && !skills && !location && !designation && !certificates && !education && !experienceYears && !jobDetails && !githubLink && !req.files && !resumePath && !resumeUrl && !profileImageUrl) {
       return res.status(400).json({ error: "No data provided to update." });
     }
 
@@ -251,9 +252,10 @@ exports.updateUser = async (req, res) => {
 
         // Handle resume upload if a file is provided
         let resumeUrl = null;
+        let profileImageUrl = null;
         
         // Check if we need to delete an existing resume from Cloudinary
-        if (req.file && jobseeker.resume && jobseeker.resume.includes('cloudinary.com')) {
+        if (req.files?.resume && jobseeker.resume && jobseeker.resume.includes('cloudinary.com')) {
           try {
             // Extract the public_id from the Cloudinary URL
             // Format: https://res.cloudinary.com/cloud_name/image/upload/v1234567890/resumes/resume-1234567890.pdf
@@ -291,25 +293,56 @@ exports.updateUser = async (req, res) => {
           }
         }
         
-        // Handle new resume upload
-        if (req.file) {
+        // Check if we need to delete an existing profile image from Cloudinary
+        if (req.files?.profileImage && jobseeker.profileImage && jobseeker.profileImage.includes('cloudinary.com')) {
           try {
-            console.log('Processing resume file upload:', req.file.originalname);
+            // Extract the public_id from the Cloudinary URL
+            const urlParts = jobseeker.profileImage.split('/');
+            
+            // Find the 'profile-images' folder index
+            const profileImagesFolderIndex = urlParts.findIndex(part => part === 'profile-images');
+            if (profileImagesFolderIndex !== -1 && profileImagesFolderIndex < urlParts.length - 1) {
+              // Get the filename with extension
+              const fileNameWithExtension = urlParts[profileImagesFolderIndex + 1];
+              // Remove extension to get public_id
+              const publicId = `profile-images/${fileNameWithExtension.split('.')[0]}`;
+              
+              console.log('Deleting old profile image from Cloudinary:', publicId);
+              
+              try {
+                await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
+                console.log('Deleted profile image');
+              } catch (imageError) {
+                console.error('Failed to delete profile image:', imageError);
+              }
+            } else {
+              console.log('Could not find profile-images folder in URL:', jobseeker.profileImage);
+            }
+          } catch (deleteError) {
+            console.error('Error deleting old profile image from Cloudinary:', deleteError);
+            // Continue even if delete fails
+          }
+        }
+        
+        // Handle new resume upload
+        if (req.files?.resume && req.files.resume[0]) {
+          try {
+            console.log('Processing resume file upload:', req.files.resume[0].originalname);
             
             // Convert buffer to base64 string for Cloudinary upload
-            const fileBuffer = req.file.buffer;
-            const fileType = req.file.mimetype;
+            const fileBuffer = req.files.resume[0].buffer;
+            const fileType = req.files.resume[0].mimetype;
             const base64String = `data:${fileType};base64,${fileBuffer.toString('base64')}`;
             
             // Determine the appropriate resource_type based on file extension
-            const fileExt = path.extname(req.file.originalname).toLowerCase();
+            const fileExt = path.extname(req.files.resume[0].originalname).toLowerCase();
             const isDocument = ['.pdf', '.docx', '.doc'].includes(fileExt);
             
             // Generate a unique public_id without special characters
             const timestamp = Date.now();
             const publicId = `resume_${timestamp}`;
             
-            console.log('Uploading file to Cloudinary:', {
+            console.log('Uploading resume to Cloudinary:', {
               resourceType: isDocument ? 'raw' : 'auto',
               publicId,
               format: fileExt.substring(1)
@@ -329,14 +362,14 @@ exports.updateUser = async (req, res) => {
               flags: 'attachment' // Make it downloadable
             });
             
-            console.log('Cloudinary upload successful:', mediaUpload.secure_url);
+            console.log('Cloudinary resume upload successful:', mediaUpload.secure_url);
             
             resumeUrl = mediaUpload.secure_url;
             
             // Update the jobseeker's resume field with the Cloudinary URL
             jobseeker.resume = resumeUrl;
           } catch (error) {
-            console.error('Cloudinary Upload Error:', error);
+            console.error('Cloudinary Resume Upload Error:', error);
             // Continue without resume if upload fails
           }
         } else if (resumeUrl) {
@@ -348,6 +381,57 @@ exports.updateUser = async (req, res) => {
           // This is for backward compatibility with existing resumes
           jobseeker.resume = resumePath;
           console.log('Using provided resumePath:', resumePath);
+        }
+        
+        // Handle profile image upload
+        if (req.files?.profileImage && req.files.profileImage[0]) {
+          try {
+            console.log('Processing profile image upload:', req.files.profileImage[0].originalname);
+            
+            // Convert buffer to base64 string for Cloudinary upload
+            const fileBuffer = req.files.profileImage[0].buffer;
+            const fileType = req.files.profileImage[0].mimetype;
+            const base64String = `data:${fileType};base64,${fileBuffer.toString('base64')}`;
+            
+            // Generate a unique public_id without special characters
+            const timestamp = Date.now();
+            const publicId = `profile_${timestamp}`;
+            
+            console.log('Uploading profile image to Cloudinary:', {
+              resourceType: 'image',
+              publicId
+            });
+            
+            // Upload to Cloudinary
+            const mediaUpload = await cloudinary.uploader.upload(base64String, {
+              resource_type: 'image',
+              folder: 'profile-images',
+              public_id: publicId,
+              access_mode: 'public',
+              type: 'upload',
+              overwrite: true,
+              use_filename: false,
+              unique_filename: true,
+              transformation: [
+                { width: 400, height: 400, crop: "limit" }, // Resize to a reasonable size
+                { quality: "auto:good" } // Optimize quality
+              ]
+            });
+            
+            console.log('Cloudinary profile image upload successful:', mediaUpload.secure_url);
+            
+            profileImageUrl = mediaUpload.secure_url;
+            
+            // Update the jobseeker's profileImage field with the Cloudinary URL
+            jobseeker.profileImage = profileImageUrl;
+          } catch (error) {
+            console.error('Cloudinary Profile Image Upload Error:', error);
+            // Continue without profile image if upload fails
+          }
+        } else if (profileImageUrl) {
+          // If a profileImageUrl is provided in the request body (from frontend)
+          jobseeker.profileImage = profileImageUrl;
+          console.log('Using provided profileImageUrl:', profileImageUrl);
         }
         
         // Save the updated jobseeker data
@@ -377,6 +461,7 @@ exports.updateUser = async (req, res) => {
           video: jobseeker?.video || "",
           github: jobseeker?.githubLink || "",
         },
+        profileImage: jobseeker?.profileImage || null,
         accessibility: jobseeker?.accessibility || {
           highContrast: false,
           brailleSupport: false,
@@ -458,6 +543,7 @@ exports.getUserProfile = async (req, res) => {
         video: jobseeker?.video || "",
         github: jobseeker?.githubLink || "",
       },
+      profileImage: jobseeker?.profileImage || null,
       accessibility: jobseeker?.accessibility || {
         highContrast: false,
         brailleSupport: false,
@@ -474,36 +560,123 @@ exports.getUserProfile = async (req, res) => {
 
 exports.updateRecruiterProfile = async (req, res) => {
   const userId = req.user.id; // Get the user ID from the token
-  const { company, location, phone,bussinessTag,description } = req.body;
+  const { company, location, phone, bussinessTag, description, profileImageUrl } = req.body;
   if(!company || !location || !phone || !bussinessTag || !description) {
     return res.status(400).json({ error: "All fields are required." });
   }
   try {
     let recruiter = await Recruiter.findOne({ where: { userId } });
-    // if (!recruiter) {
-    //   return res.status(404).json({ error: "Recruiter not found" });
-    // }
-    if(recruiter){
+    
+    // Handle profile image upload if file is provided
+    let profileImageCloudinaryUrl = profileImageUrl;
+    
+    if (req.files?.profileImage && req.files.profileImage[0]) {
+      try {
+        console.log('Processing recruiter profile image upload:', req.files.profileImage[0].originalname);
+        
+        // Delete existing profile image from Cloudinary if one exists
+        if (recruiter?.profileImage && recruiter.profileImage.includes('cloudinary.com')) {
+          try {
+            // Extract the public_id from the Cloudinary URL
+            const urlParts = recruiter.profileImage.split('/');
+            
+            // Find the 'profile-images' folder index
+            const profileImagesFolderIndex = urlParts.findIndex(part => part === 'profile-images');
+            if (profileImagesFolderIndex !== -1 && profileImagesFolderIndex < urlParts.length - 1) {
+              // Get the filename with extension
+              const fileNameWithExtension = urlParts[profileImagesFolderIndex + 1];
+              // Remove extension to get public_id
+              const publicId = `profile-images/${fileNameWithExtension.split('.')[0]}`;
+              
+              console.log('Deleting old recruiter profile image from Cloudinary:', publicId);
+              
+              try {
+                await cloudinary.uploader.destroy(publicId, { resource_type: 'image' });
+                console.log('Deleted recruiter profile image');
+              } catch (imageError) {
+                console.error('Failed to delete recruiter profile image:', imageError);
+              }
+            }
+          } catch (deleteError) {
+            console.error('Error deleting old recruiter profile image:', deleteError);
+            // Continue even if delete fails
+          }
+        }
+        
+        // Convert buffer to base64 string for Cloudinary upload
+        const fileBuffer = req.files.profileImage[0].buffer;
+        const fileType = req.files.profileImage[0].mimetype;
+        const base64String = `data:${fileType};base64,${fileBuffer.toString('base64')}`;
+        
+        // Generate a unique public_id without special characters
+        const timestamp = Date.now();
+        const publicId = `recruiter_profile_${timestamp}`;
+        
+        console.log('Uploading recruiter profile image to Cloudinary:', {
+          resourceType: 'image',
+          publicId
+        });
+        
+        // Upload to Cloudinary
+        const mediaUpload = await cloudinary.uploader.upload(base64String, {
+          resource_type: 'image',
+          folder: 'profile-images',
+          public_id: publicId,
+          access_mode: 'public',
+          type: 'upload',
+          overwrite: true,
+          use_filename: false,
+          unique_filename: true,
+          transformation: [
+            { width: 400, height: 400, crop: "limit" }, // Resize to a reasonable size
+            { quality: "auto:good" } // Optimize quality
+          ]
+        });
+        
+        console.log('Cloudinary recruiter profile image upload successful:', mediaUpload.secure_url);
+        
+        profileImageCloudinaryUrl = mediaUpload.secure_url;
+      } catch (error) {
+        console.error('Cloudinary Recruiter Profile Image Upload Error:', error);
+        // Continue without profile image if upload fails
+      }
+    }
+    
+    if (recruiter) {
       recruiter.company = company;
       recruiter.location = location;
       recruiter.phone = phone;
       recruiter.bussinessTag = bussinessTag;
       recruiter.description = description;
+      
+      // Update profile image if available
+      if (profileImageCloudinaryUrl) {
+        recruiter.profileImage = profileImageCloudinaryUrl;
+      }
   
       await recruiter.save();
-    }else{
-      const recruiter = await Recruiter.create({
+    } else {
+      const newRecruiter = await Recruiter.create({
         userId,
         company,
         location,
         phone,
         bussinessTag,
-        description
+        description,
+        profileImage: profileImageCloudinaryUrl || null
       });
+      
+      recruiter = newRecruiter;
       await recruiter.save();
     }
 
-    res.json({ message: "Recruiter data updated successfully", recruiter });
+    res.json({ 
+      message: "Recruiter data updated successfully", 
+      recruiter: {
+        ...recruiter.toJSON(),
+        profileImage: recruiter.profileImage || null
+      } 
+    });
   } catch (error) {
     console.error("Update Recruiter Error:", error);
     res.status(500).json({ error: "Internal Server Error", details: error.message });
@@ -532,6 +705,7 @@ exports.getRecruiterProfile = async (req, res) => {
       phone: recruiter.Recruiter?.phone || "Not provided",
       bussinessTag: recruiter.Recruiter?.bussinessTag || "Bussiness tag Not provided",
       description: recruiter.Recruiter?.description || "Not provided",
+      profileImage: recruiter.Recruiter?.profileImage || null,
     };
     
     res.json(profile);

@@ -8,9 +8,14 @@ const router = express.Router();
 router.post("/register", registerUser);
 router.post("/login", loginUser);
 router.post("/google-login", googleLogin);
-router.put("/update", authenticateUser,upload.single("resume"), updateUser);
+router.put("/update", authenticateUser, upload.fields([
+  { name: 'resume', maxCount: 1 },
+  { name: 'profileImage', maxCount: 1 }
+]), updateUser);
 router.get("/profile",authenticateUser,getUserProfile);
-router.post("/recruiter_update",authenticateUser,updateRecruiterProfile);
+router.post("/recruiter_update", authenticateUser, upload.fields([
+  { name: 'profileImage', maxCount: 1 }
+]), updateRecruiterProfile);
 
 router.get("/recruiter",authenticateUser,getRecruiterProfile);
 
