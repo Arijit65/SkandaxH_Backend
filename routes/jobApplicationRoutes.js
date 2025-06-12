@@ -2,7 +2,7 @@ const express = require("express");
 const { authenticateUser } = require("../middleware/authMiddleware");
 const upload = require("../middleware/uploadMiddleware");
 //const JobApplication = require("../models/JobApplication");
-const { applyForJob, getApplicationsByUser, getApplicationsByRecruiter,getApplicationStatus } = require("../controllers/jobApplicationController");
+const { applyForJob, getApplicationsByUser, getApplicationsByRecruiter,getApplicationStatus, updateApplicationStatus } = require("../controllers/jobApplicationController");
 
 const router = express.Router();
 
@@ -40,6 +40,8 @@ router.get("/user_applications", authenticateUser, getApplicationsByUser)
 
 router.get("/recruiters_applications",authenticateUser,getApplicationsByRecruiter)
 router.get('/application-status/:id',getApplicationStatus);
+router.put('/:id/status', authenticateUser, updateApplicationStatus);
+
 // Redirect to Cloudinary resume URL
 router.get("/resume/:cloudinaryId", authenticateUser, async (req, res) => {
   try {

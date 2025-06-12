@@ -14,5 +14,6 @@ router.get('/results/:session_id', mcqAssessmentController.getResults);
 router.get('/report/:email', mcqAssessmentController.getAssessmentsByEmail);
 router.get('/latest-report/:email', mcqAssessmentController.getLatestAssessmentByEmail);
 router.get('/report-by-position/:position', mcqAssessmentController.getAssessmentsByPosition);
+router.get('/report-by-email-position/:email/:position', mcqAssessmentController.getAssessmentByEmailAndPosition);
 
 module.exports = router;

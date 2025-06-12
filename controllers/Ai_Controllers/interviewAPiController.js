@@ -112,7 +112,7 @@ exports.createInterview = async (req, res) => {
 
 
  exports.saveInterview = async (req, res) => {
-  const { session_id, responses, report_url, analysis, rawLog } = req.body;
+  const { session_id, responses, report_url, analysis, rawLog,overallScore } = req.body;
 
   try {
     await Interview.update(
@@ -120,8 +120,10 @@ exports.createInterview = async (req, res) => {
         responses,
         reportUrl:  report_url,
         status:     'completed',
-        scoring: analysis,   // your per-question JSON scores
-        interpretation: rawLog      // full console log string
+        scoring: analysis, 
+        overallScore,  // your per-question JSON scores
+        interpretation: rawLog ,     // full console log string,
+        completedAt: new Date() // set completedAt to current date
       },
       { where: { sessionId: session_id } }
     );
@@ -131,6 +133,38 @@ exports.createInterview = async (req, res) => {
     return res.status(500).json({ success: false, error: err.message });
   }
 };
+    
+// exports.saveInterview = async (req, res) => {
+//   const { session_id, responses, report_url, analysis, rawLog } = req.body;
+
+//   try {
+//     // Extract overallScore from analysis if present
+//     let overallScore = null;
+//     if (analysis && analysis.overall && analysis.overall.score !== undefined) {
+//       overallScore = analysis.overall.score;
+//     }
+
+//     await Interview.update(
+//       {
+//         responses,
+//         reportUrl: report_url,
+//         status: 'completed', // <-- This will update the status!
+//         scoring: analysis,
+//         overallScore, // <-- Now this is defined!
+//         interpretation: rawLog,
+//         completedAt: new Date()
+//       },
+//       { where: { sessionId: session_id } }
+//     );
+
+//     // Fetch and return the updated interview
+//     const updatedInterview = await Interview.findOne({ where: { sessionId: session_id } });
+//     return res.json({ success: true, data: updatedInterview });
+//   } catch (err) {
+//     console.error(err);
+//     return res.status(500).json({ success: false, error: err.message });
+//   }
+// };
 
 exports.getInterviewsByEmail = async (req, res) => {
   const { email } = req.params;
@@ -192,6 +226,44 @@ exports.getInterviewsByJobRole = async (req, res) => {
     return res.status(200).json({ success: true, data: interviews });
   } catch (err) {
     console.error('Error fetching interviews by job role:', err);
+    return res.status(500).json({ success: false, error: err.message });
+  }
+};
+
+/**
+ * Get interview by both email and job role
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ */
+exports.getInterviewByEmailAndJobRole = async (req, res) => {
+  const { email, jobRole } = req.params;
+  
+  if (!email || !jobRole) {
+    return res.status(400).json({ 
+      success: false, 
+      message: 'Both email and job role are required' 
+    });
+  }
+  
+  try {
+    const interview = await Interview.findOne({
+      where: { 
+        email,
+        jobRole 
+      },
+      order: [['createdAt', 'DESC']]
+    });
+    
+    if (!interview) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No interview found for this email and job role' 
+      });
+    }
+    
+    return res.status(200).json({ success: true, data: interview });
+  } catch (err) {
+    console.error('Error fetching interview by email and job role:', err);
     return res.status(500).json({ success: false, error: err.message });
   }
 };

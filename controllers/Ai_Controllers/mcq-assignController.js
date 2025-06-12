@@ -511,3 +511,49 @@ exports.getAssessmentsByPosition = async (req, res) => {
     });
   }
 };
+
+/**
+ * Get MCQ assessment by both email and position
+ * @param {Object} req - Request object
+ * @param {Object} res - Response object
+ */
+exports.getAssessmentByEmailAndPosition = async (req, res) => {
+  try {
+    const { email, position } = req.params;
+    
+    if (!email || !position) {
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Both email and position are required' 
+      });
+    }
+
+    // Find assessment matching both email and position
+    const assessment = await MCQAssessment.findOne({
+      where: { 
+        candidate_email: email,
+        position_applied: position 
+      },
+      order: [['created_at', 'DESC']]
+    });
+
+    if (!assessment) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'No assessment found for this email and position' 
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      data: assessment
+    });
+  } catch (error) {
+    console.error('Error fetching assessment by email and position:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: error.message
+    });
+  }
+};
